@@ -16,23 +16,16 @@ const Header = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          <a href="#dashboard" className="text-foreground hover:text-primary transition-colors">
+          <a href="/" className="text-foreground hover:text-primary transition-colors">
             Продажи
           </a>
-          <a href="#reports" className="text-foreground hover:text-primary transition-colors">
-            Отчёты
-          </a>
-          <a href="#products" className="text-foreground hover:text-primary transition-colors">
-            Товары
+          <a href="/stats" className="text-foreground hover:text-primary transition-colors">
+            Статистика
           </a>
         </nav>
 
         <div className="flex items-center space-x-3">
-          <Button variant="boutique" size="sm" className="hidden sm:flex">
-            <PlusCircle className="h-4 w-4" />
-            Добавить продажу
-          </Button>
-          <Button variant="outline" size="sm" className="hidden sm:flex">
+          <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => window.location.href = '/stats'}>
             <BarChart3 className="h-4 w-4" />
           </Button>
         </div>

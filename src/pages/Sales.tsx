@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import SalesForm from "@/components/SalesForm";
 import Footer from "@/components/Footer";
 
-const Index = () => {
+const Sales = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -14,4 +14,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Sales;

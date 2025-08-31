@@ -1,17 +1,17 @@
 import Header from "@/components/Header";
-import SalesForm from "@/components/SalesForm";
+import StatsOverview from "@/components/StatsOverview";
 import Footer from "@/components/Footer";
 
-const Index = () => {
+const Stats = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="py-8">
-        <SalesForm />
+        <StatsOverview />
       </main>
       <Footer />
     </div>
   );
 };
 
-export default Index;
+export default Stats;
