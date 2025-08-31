@@ -11,7 +11,7 @@ const Header = () => {
             <Smartphone className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">PhoneStyle</h1>
+            <h1 className="text-xl font-bold text-foreground">Ipochino</h1>
             <p className="text-xs text-muted-foreground">Family Boutique</p>
           </div>
         </div>
