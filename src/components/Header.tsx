@@ -1,0 +1,44 @@
+import { Button } from "@/components/ui/button";
+import { Smartphone, BarChart3, PlusCircle } from "lucide-react";
+
+const Header = () => {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full gradient-accent">
+            <Smartphone className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">PhoneStyle</h1>
+            <p className="text-xs text-muted-foreground">Family Boutique</p>
+          </div>
+        </div>
+        
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <a href="#dashboard" className="text-foreground hover:text-primary transition-colors">
+            Продажи
+          </a>
+          <a href="#reports" className="text-foreground hover:text-primary transition-colors">
+            Отчёты
+          </a>
+          <a href="#products" className="text-foreground hover:text-primary transition-colors">
+            Товары
+          </a>
+        </nav>
+
+        <div className="flex items-center space-x-3">
+          <Button variant="boutique" size="sm" className="hidden sm:flex">
+            <PlusCircle className="h-4 w-4" />
+            Добавить продажу
+          </Button>
+          <Button variant="outline" size="sm" className="hidden sm:flex">
+            <BarChart3 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;
