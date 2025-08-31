@@ -27,15 +27,6 @@ const Header = () => {
             Аналитика
           </Link>
         </nav>
-
-        <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                <Link to="/stats"><BarChart3 className="h-4 w-4 mr-2" />Статистика</Link>
-            </Button>
-            <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                <Link to="/analytics"><PieChart className="h-4 w-4 mr-2" />Аналитика</Link>
-            </Button>
-        </div>
       </div>
     </header>
   );
