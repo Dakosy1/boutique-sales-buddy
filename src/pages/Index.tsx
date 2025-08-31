@@ -4,9 +4,12 @@ import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="py-8">
+      {/* Эти классы заставят основной блок занять все место 
+        и отцентрировать карточку по вертикали и горизонтали 
+      */}
+      <main className="flex-grow flex items-center justify-center py-8">
         <SalesForm />
       </main>
       <Footer />
@@ -15,3 +18,4 @@ const Index = () => {
 };
 
 export default Index;
+

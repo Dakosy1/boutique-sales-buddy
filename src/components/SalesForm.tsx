@@ -7,23 +7,43 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// --- НАСТРОЙКА SUPABASE ---
+// Код подключения, который берет ваши ключи из файла .env.local
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Клиент создается из глобального объекта supabase, который мы подключили в index.html
+const supabase = (window as any).supabase.createClient(supabaseUrl, supabaseKey);
+// -------------------------
+
+
 const SalesForm = () => {
   const { toast } = useToast();
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState(''); // Добавили способ оплаты
 
   const categories = [
-    { value: 'cases', label: 'Чехлы' },
-    { value: 'screenProtectors', label: 'Защитные стёкла' },
-    { value: 'chargers', label: 'Зарядки' },
-    { value: 'headphones', label: 'Наушники' },
-    { value: 'other', label: 'Прочее' },
+    { value: 'Чехол', label: 'Чехлы' },
+    { value: 'Стекло', label: 'Защитные стёкла' },
+    { value: 'Зарядка', label: 'Зарядки' },
+    { value: 'Наушники', label: 'Наушники' },
+    { value: 'Аксессуар', label: 'Аксессуар' },
+    { value: 'Ремонт', label: 'Ремонт' },
+    { value: 'Прочее', label: 'Прочее' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const paymentMethods = [
+      { value: 'Наличные', label: 'Наличные' },
+      { value: 'QR', label: 'QR' },
+      { value: 'Перевод', label: 'Перевод' },
+      { value: 'Kaspi Red', label: 'Kaspi Red' },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !category) {
+    if (!amount || !category || !paymentMethod) {
       toast({
         title: "Ошибка",
         description: "Заполните все поля",
@@ -32,15 +52,39 @@ const SalesForm = () => {
       return;
     }
     
-    // Here we would normally save to Supabase
-    toast({
-      title: "Продажа сохранена!",
-      description: `${amount} тг - ${categories.find(c => c.value === category)?.label}`,
-    });
+    const saleAmount = parseFloat(amount);
+    if (isNaN(saleAmount)) {
+      toast({
+        title: "Ошибка",
+        description: "Сумма должна быть числом",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Reset form
-    setAmount('');
-    setCategory('');
+    const { error } = await supabase
+      .from('sales')
+      .insert([
+        { amount: saleAmount, category: category, payment_method: paymentMethod }
+      ]);
+
+    if (error) {
+        toast({
+            title: "Ошибка сохранения",
+            description: error.message,
+            variant: "destructive"
+        });
+    } else {
+        toast({
+          title: "Продажа сохранена!",
+          description: `${amount} тг - ${category} (${paymentMethod})`,
+        });
+
+        // Reset form
+        setAmount('');
+        setCategory('');
+        setPaymentMethod('');
+    }
   };
 
   return (
@@ -73,6 +117,23 @@ const SalesForm = () => {
                   {categories.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Новое поле "Способ оплаты" */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Способ оплаты</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите способ оплаты" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      {method.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
