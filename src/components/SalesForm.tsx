@@ -56,7 +56,7 @@ const SalesForm = () => {
               <Input
                 id="amount"
                 type="number"
-                placeholder="4000"
+                placeholder="цена"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="transition-all focus:shadow-glow"
