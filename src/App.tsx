@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Stats from "./pages/Stats";
+import Analytics from "./pages/Analytics"; // 1. Импортируем новую страницу
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,7 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/stats" element={<Stats />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/analytics" element={<Analytics />} /> {/* 2. Добавляем новый маршрут */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
@@ -27,3 +28,4 @@ const App = () => (
 );
 
 export default App;
+

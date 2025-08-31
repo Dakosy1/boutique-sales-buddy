@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Smartphone, BarChart3, PlusCircle } from "lucide-react";
+import { Smartphone, BarChart3, PieChart } from "lucide-react"; // Добавил иконку PieChart
+import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
@@ -16,18 +17,24 @@ const Header = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          <a href="/" className="text-foreground hover:text-primary transition-colors">
+          <Link to="/" className="text-foreground hover:text-primary transition-colors">
             Продажи
-          </a>
-          <a href="/stats" className="text-foreground hover:text-primary transition-colors">
+          </Link>
+          <Link to="/stats" className="text-foreground hover:text-primary transition-colors">
             Статистика
-          </a>
+          </Link>
+          <Link to="/analytics" className="text-foreground hover:text-primary transition-colors">
+            Аналитика
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => window.location.href = '/stats'}>
-            <BarChart3 className="h-4 w-4" />
-          </Button>
+            <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
+                <Link to="/stats"><BarChart3 className="h-4 w-4 mr-2" />Статистика</Link>
+            </Button>
+            <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
+                <Link to="/analytics"><PieChart className="h-4 w-4 mr-2" />Аналитика</Link>
+            </Button>
         </div>
       </div>
     </header>
@@ -35,3 +42,4 @@ const Header = () => {
 };
 
 export default Header;
+

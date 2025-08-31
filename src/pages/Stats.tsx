@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, ListChecks, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -32,22 +33,40 @@ const Stats = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // Начальная дата по умолчанию - начало текущего месяца
     const [startDate, setStartDate] = useState<Date>(() => {
-        const now = new Date();
-        const date = new Date(now.getFullYear(), now.getMonth(), 1);
+        const date = new Date();
         date.setHours(0, 0, 0, 0);
         return date;
     });
 
-    // Конечная дата по умолчанию - конец сегодняшнего дня
     const [endDate, setEndDate] = useState<Date>(() => {
         const date = new Date();
         date.setHours(23, 59, 59, 999);
         return date;
     });
 
-    // Этот эффект будет срабатывать каждый раз, когда меняется startDate или endDate
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all'); // НОВЫЙ ФИЛЬТР
+
+    const categories = [
+        { value: 'all', label: 'Все товары' },
+        { value: 'Чехол', label: 'Чехлы' },
+        { value: 'Стекло', label: 'Защитные стёкла' },
+        { value: 'Зарядка', label: 'Зарядки' },
+        { value: 'Наушники', label: 'Наушники' },
+        { value: 'Аксессуар', label: 'Аксессуар' },
+        { value: 'Ремонт', label: 'Ремонт' },
+        { value: 'Прочее', label: 'Прочее' },
+    ];
+
+    const paymentMethods = [
+      { value: 'all', label: 'Все способы' },
+      { value: 'Наличные', label: 'Наличные' },
+      { value: 'QR', label: 'QR' },
+      { value: 'Перевод', label: 'Перевод' },
+      { value: 'Kaspi Red', label: 'Kaspi Red' },
+    ];
+
     useEffect(() => {
         const fetchSales = async () => {
             if (!startDate || !endDate) return;
@@ -55,13 +74,23 @@ const Stats = () => {
             setLoading(true);
             setError('');
 
-            // Запрашиваем данные за выбранный период
-            const { data, error } = await supabase
+            let query = supabase
                 .from('sales')
                 .select('*')
                 .gte('created_at', startDate.toISOString())
                 .lte('created_at', endDate.toISOString())
                 .order('created_at', { ascending: false });
+
+            if (selectedCategory !== 'all') {
+                query = query.eq('category', selectedCategory);
+            }
+            
+            // ДОБАВЛЕНИЕ: Фильтрация по способу оплаты
+            if (selectedPaymentMethod !== 'all') {
+                query = query.eq('payment_method', selectedPaymentMethod);
+            }
+
+            const { data, error } = await query;
 
             if (error) {
                 setError('Не удалось загрузить отчет: ' + error.message);
@@ -74,16 +103,16 @@ const Stats = () => {
         };
 
         fetchSales();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, selectedCategory, selectedPaymentMethod]); // Добавили новый фильтр в зависимости
 
     const getReportTitle = () => {
         if (!startDate || !endDate) return "Отчет по продажам";
         const start = format(startDate, "dd.MM.yyyy");
         const end = format(endDate, "dd.MM.yyyy");
-        if (start === end) {
-            return `Отчет по продажам за ${start}`;
-        }
-        return `Отчет по продажам с ${start} по ${end}`;
+        const categoryText = selectedCategory === 'all' ? 'Все товары' : `"${selectedCategory}"`;
+        const titleDatePart = start === end ? `за ${start}` : `с ${start} по ${end}`;
+        
+        return `Отчет: ${categoryText} ${titleDatePart}`;
     };
 
     const handleSetToday = () => {
@@ -98,7 +127,7 @@ const Stats = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="py-8 flex-grow">
-        <div className="container mx-auto max-w-4xl px-4">
+        <div className="container mx-auto max-w-5xl px-4">
             <div className="flex flex-wrap justify-center mb-6 gap-2 md:gap-4 items-center">
                 <Popover>
                     <PopoverTrigger asChild>
@@ -122,8 +151,6 @@ const Stats = () => {
                     </PopoverContent>
                 </Popover>
                 
-                <span className="text-muted-foreground hidden sm:inline">-</span>
-
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant={"outline"} className="w-[180px] justify-start text-left font-normal">
@@ -146,6 +173,33 @@ const Stats = () => {
                     </PopoverContent>
                 </Popover>
                 
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Выберите категорию" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                </Select>
+
+                {/* НОВЫЙ ДРОПДАУН */}
+                <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Способ оплаты" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map((method) => (
+                        <SelectItem key={method.value} value={method.value}>
+                          {method.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                </Select>
+
                 <Button onClick={handleSetToday}>Сегодня</Button>
             </div>
             
