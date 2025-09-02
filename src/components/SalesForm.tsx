@@ -4,24 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Save, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 
-// --- НАСТРОЙКА SUPABASE ---
-// Код подключения, который берет ваши ключи из файла .env.local
+// @ts-ignore
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// @ts-ignore
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Клиент создается из глобального объекта supabase, который мы подключили в index.html
-const supabase = (window as any).supabase.createClient(supabaseUrl, supabaseKey);
-// -------------------------
+// @ts-ignore
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 
 const SalesForm = () => {
   const { toast } = useToast();
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState(''); // Добавили способ оплаты
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
+  const [isLoading, setIsLoading] = useState(false);
+
 
   const categories = [
     { value: 'Чехол', label: 'Чехлы' },
@@ -43,7 +48,7 @@ const SalesForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !category || !paymentMethod) {
+    if (!amount || !category || !paymentMethod || !saleDate) {
       toast({
         title: "Ошибка",
         description: "Заполните все поля",
@@ -52,6 +57,7 @@ const SalesForm = () => {
       return;
     }
     
+    setIsLoading(true);
     const saleAmount = parseFloat(amount);
     if (isNaN(saleAmount)) {
       toast({
@@ -59,14 +65,22 @@ const SalesForm = () => {
         description: "Сумма должна быть числом",
         variant: "destructive"
       });
+      setIsLoading(false);
       return;
     }
 
     const { error } = await supabase
       .from('sales')
       .insert([
-        { amount: saleAmount, category: category, payment_method: paymentMethod }
+        { 
+            amount: saleAmount, 
+            category: category, 
+            payment_method: paymentMethod,
+            created_at: saleDate.toISOString() // Используем выбранную дату
+        }
       ]);
+
+    setIsLoading(false);
 
     if (error) {
         toast({
@@ -84,17 +98,39 @@ const SalesForm = () => {
         setAmount('');
         setCategory('');
         setPaymentMethod('');
+        setSaleDate(new Date());
     }
   };
 
   return (
-    <div className="container mx-auto max-w-xl py-8 px-4">
+    <div className="container mx-auto max-w-xl px-4">
       <Card className="shadow-card animate-scale-in">
         <CardHeader>
           <CardTitle>Ежедневный учёт продаж</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="space-y-2">
+                <Label htmlFor="saleDate">Дата продажи</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant={"outline"} className="w-full justify-start text-left font-normal">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {saleDate ? format(saleDate, "dd LLL, y", { locale: ru }) : <span>Выберите дату</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={saleDate}
+                            onSelect={setSaleDate}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="amount">Сумма (тенге)</Label>
               <Input
@@ -123,7 +159,6 @@ const SalesForm = () => {
               </Select>
             </div>
 
-            {/* Новое поле "Способ оплаты" */}
             <div className="space-y-2">
               <Label htmlFor="paymentMethod">Способ оплаты</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -145,9 +180,10 @@ const SalesForm = () => {
               variant="boutique" 
               size="lg" 
               className="w-full"
+              disabled={isLoading}
             >
               <Save className="h-4 w-4 mr-2" />
-              Сохранить продажу
+              {isLoading ? 'Сохранение...' : 'Сохранить продажу'}
             </Button>
           </form>
         </CardContent>
