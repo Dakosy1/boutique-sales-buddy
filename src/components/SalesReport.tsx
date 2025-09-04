@@ -172,7 +172,7 @@ const SalesReport = ({ startDate, endDate, selectedCategory, selectedPaymentMeth
             </CardContent>
             <CardFooter className="bg-muted/50 p-6 flex justify-between items-center">
                 <div className="flex items-center text-lg font-bold"><ListChecks className="h-5 w-5 mr-2" />Итого продаж:</div>
-                <div className="text-2xl font-bold text-primary flex items-center"><DollarSign className="h-6 w-6 mr-2" />{total.toLocaleString('ru-RU')} тг</div>
+                <div className="text-2xl font-bold text-primary flex items-center">{total.toLocaleString('ru-RU')} тг</div>
             </CardFooter>
         </Card>
 

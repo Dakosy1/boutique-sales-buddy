@@ -97,7 +97,6 @@ const ExpensesReport = ({ startDate, endDate }: ExpensesReportProps) => {
                    Итого расходов:
                 </div>
                 <div className="text-2xl font-bold text-destructive flex items-center">
-                    <DollarSign className="h-6 w-6 mr-2" />
                     {total.toLocaleString('ru-RU')} тг
                 </div>
             </CardFooter>
