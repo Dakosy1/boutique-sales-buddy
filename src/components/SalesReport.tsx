@@ -2,14 +2,22 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { DollarSign, ListChecks } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DollarSign, ListChecks, Edit, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
-// Подключаемся к Supabase так же, как в форме
+// @ts-ignore
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// @ts-ignore
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = (window as any).supabase.createClient(supabaseUrl, supabaseKey);
+// @ts-ignore
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// Описываем, как выглядит объект продажи, который мы получаем из базы
 interface Sale {
     id: number;
     created_at: string;
@@ -18,108 +26,188 @@ interface Sale {
     payment_method: string;
 }
 
-const SalesReport = () => {
+interface SalesReportProps {
+  startDate?: Date;
+  endDate?: Date;
+  selectedCategory: string;
+  selectedPaymentMethod: string;
+}
+
+const SalesReport = ({ startDate, endDate, selectedCategory, selectedPaymentMethod }: SalesReportProps) => {
+    const { toast } = useToast();
     const [sales, setSales] = useState<Sale[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [editingSale, setEditingSale] = useState<Sale | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const categories = [
+        { value: 'all', label: 'Все товары' },
+        { value: 'Чехол', label: 'Чехлы' },
+        { value: 'Стекло', label: 'Защитные стёкла' },
+        { value: 'Зарядка', label: 'Зарядки' },
+        { value: 'Наушники', label: 'Наушники' },
+        { value: 'Аксессуар', label: 'Аксессуар' },
+        { value: 'Ремонт', label: 'Ремонт' },
+        { value: 'Прочее', label: 'Прочее' },
+    ];
+
+    const paymentMethods = [
+      { value: 'all', label: 'Все способы' },
+      { value: 'Наличные', label: 'Наличные' },
+      { value: 'QR', label: 'QR' },
+      { value: 'Перевод', label: 'Перевод' },
+      { value: 'Kaspi Red', label: 'Kaspi Red' },
+    ];
+
+    const fetchSales = async () => {
+        if (!startDate || !endDate) return;
+        setLoading(true);
+        setError('');
+
+        let query = supabase
+            .from('sales')
+            .select('*')
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString())
+            .order('created_at', { ascending: false });
+
+        if (selectedCategory !== 'all') query = query.eq('category', selectedCategory);
+        if (selectedPaymentMethod !== 'all') query = query.eq('payment_method', selectedPaymentMethod);
+
+        const { data, error } = await query;
+
+        if (error) {
+            setError('Не удалось загрузить отчет: ' + error.message);
+        } else if (data) {
+            setSales(data);
+            const totalAmount = data.reduce((sum, sale) => sum + sale.amount, 0);
+            setTotal(totalAmount);
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        const fetchSales = async () => {
-            setLoading(true);
-            setError('');
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Начало сегодняшнего дня
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1); // Начало завтрашнего дня
-
-            // Запрашиваем данные из таблицы 'sales' только за сегодняшний день
-            const { data, error } = await supabase
-                .from('sales')
-                .select('*')
-                .gte('created_at', today.toISOString())
-                .lt('created_at', tomorrow.toISOString())
-                .order('created_at', { ascending: false }); // Сортируем по убыванию, чтобы новые были сверху
-
-            if (error) {
-                setError('Не удалось загрузить отчет: ' + error.message);
-            } else if (data) {
-                setSales(data);
-                // Считаем итоговую сумму
-                const totalAmount = data.reduce((sum, sale) => sum + sale.amount, 0);
-                setTotal(totalAmount);
-            }
-            setLoading(false);
-        };
-
         fetchSales();
-    }, []);
+    }, [startDate, endDate, selectedCategory, selectedPaymentMethod]);
 
-    if (loading) {
-        return <div className="text-center p-8">Загрузка отчета...</div>;
-    }
+    const handleEditClick = (sale: Sale) => {
+        setEditingSale({ ...sale });
+        setIsDialogOpen(true);
+    };
 
-    if (error) {
-        return (
-            <div className="container mx-auto max-w-4xl py-8 px-4">
-                <Alert variant="destructive">
-                    <AlertTitle>Ошибка</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            </div>
-        );
-    }
+    const handleDeleteClick = async (saleId: number) => {
+        if (window.confirm('Вы уверены?')) {
+            const { error } = await supabase.from('sales').delete().match({ id: saleId });
+            if (error) {
+                toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+            } else {
+                toast({ title: "Успех", description: "Продажа удалена." });
+                fetchSales();
+            }
+        }
+    };
+
+    const handleUpdateSale = async () => {
+        if (!editingSale) return;
+        const { error } = await supabase
+            .from('sales')
+            .update({ 
+                amount: editingSale.amount, 
+                category: editingSale.category, 
+                payment_method: editingSale.payment_method 
+            })
+            .match({ id: editingSale.id });
+        
+        if (error) {
+            toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+        } else {
+            toast({ title: "Успех", description: "Продажа обновлена." });
+            setIsDialogOpen(false);
+            setEditingSale(null);
+            fetchSales();
+        }
+    };
 
     return (
-        <div className="container mx-auto max-w-4xl py-8 px-4">
-            <Card className="shadow-card animate-scale-in">
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Отчет по продажам за сегодня</span>
-                        <span className="text-sm font-normal text-muted-foreground">
-                            {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {sales.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">Сегодня еще не было продаж.</p>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Время</TableHead>
-                                    <TableHead>Категория</TableHead>
-                                    <TableHead>Способ оплаты</TableHead>
-                                    <TableHead className="text-right">Сумма</TableHead>
+    <>
+        <Card className="shadow-card animate-scale-in">
+            <CardContent className="pt-6">
+                {loading ? (
+                    <p className="text-center p-8 text-muted-foreground">Загрузка продаж...</p>
+                ) : error ? (
+                    <Alert variant="destructive"><AlertTitle>Ошибка</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
+                ) : sales.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">Нет данных о продажах за выбранный период.</p>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Дата и Время</TableHead>
+                                <TableHead>Категория</TableHead>
+                                <TableHead>Способ оплаты</TableHead>
+                                <TableHead className="text-right">Сумма</TableHead>
+                                <TableHead className="w-[100px] text-center">Действия</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sales.map((sale) => (
+                                <TableRow key={sale.id}>
+                                    <TableCell>{new Date(sale.created_at).toLocaleString('ru-RU')}</TableCell>
+                                    <TableCell>{sale.category}</TableCell>
+                                    <TableCell>{sale.payment_method}</TableCell>
+                                    <TableCell className="text-right font-medium">{sale.amount.toLocaleString('ru-RU')} тг</TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex justify-center space-x-2">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(sale)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(sale.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sales.map((sale) => (
-                                    <TableRow key={sale.id}>
-                                        <TableCell>{new Date(sale.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                                        <TableCell>{sale.category}</TableCell>
-                                        <TableCell>{sale.payment_method}</TableCell>
-                                        <TableCell className="text-right font-medium">{sale.amount.toLocaleString('ru-RU')} тг</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-                <CardFooter className="bg-muted/50 p-6 flex justify-between items-center">
-                    <div className="flex items-center text-lg font-bold">
-                       <ListChecks className="h-5 w-5 mr-2" />
-                       Итого:
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+            <CardFooter className="bg-muted/50 p-6 flex justify-between items-center">
+                <div className="flex items-center text-lg font-bold"><ListChecks className="h-5 w-5 mr-2" />Итого продаж:</div>
+                <div className="text-2xl font-bold text-primary flex items-center"><DollarSign className="h-6 w-6 mr-2" />{total.toLocaleString('ru-RU')} тг</div>
+            </CardFooter>
+        </Card>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Редактировать продажу</DialogTitle></DialogHeader>
+                {editingSale && (
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-amount">Сумма</Label>
+                            <Input id="edit-amount" type="number" value={editingSale.amount} onChange={(e) => setEditingSale({ ...editingSale, amount: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-category">Категория</Label>
+                            <Select value={editingSale.category} onValueChange={(value) => setEditingSale({ ...editingSale, category: value })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{categories.filter(c => c.value !== 'all').map((cat) => (<SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-payment">Способ оплаты</Label>
+                            <Select value={editingSale.payment_method} onValueChange={(value) => setEditingSale({ ...editingSale, payment_method: value })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{paymentMethods.filter(p => p.value !== 'all').map((method) => (<SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <div className="text-2xl font-bold text-primary flex items-center">
-                        <DollarSign className="h-6 w-6 mr-2" />
-                        {total.toLocaleString('ru-RU')} тг
-                    </div>
-                </CardFooter>
-            </Card>
-        </div>
+                )}
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Отмена</Button></DialogClose>
+                    <Button onClick={handleUpdateSale}>Сохранить</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </>
     );
 };
 
